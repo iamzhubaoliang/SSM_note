@@ -148,6 +148,8 @@ connection.close();
 
 ![image-20210201103824186](pic/image-20210201103824186.png)
 
+spring的新注解替换掉了xml文件
+
 ## Spring 配置类
 
 ```java
@@ -353,6 +355,8 @@ execution表达式：
 
 ![image-20210203163625802](pic/image-20210203163625802.png)
 
+注意一点：后置通知是after-returning而最终通知是after;
+
 
 
 ## 7.切点表达式的抽取
@@ -483,6 +487,8 @@ public class config {
 
 ## 4.实体封装后各种查询
 
+使用`BeanPropertyRowMapper`将数据库查询结果转换为`Java`类对象。
+
 ```Java
 @Autowired
 private JdbcTemplate jdbcTemplate;
@@ -529,6 +535,40 @@ PlatformTransactionManager是Spring的事务管理器接口，它提供了我们
 
 设置隔离级别，可以解决事务并发产生的问题，如**脏读，不可重复读，和虚读**（**幻读**）
 
+**并发下事务会产生的问题**
+
+1.脏读
+
+所谓脏读，就是指**事务A读到了事务B还没有提交的数据**，比如银行取钱，事务A开启事务，此时切换到事务B，事务B开启事务-->取走100元，此时切换回事务A，事务A读取的肯定是数据库里面的原始数据，因为事务B取走了100块钱，并没有提交，数据库里面的账务余额肯定还是原始余额，这就是脏读
+
+2.不可重复读
+
+所谓不可重复读，就是指**在一个事务里面读取了两次某个数据，读出来的数据不一致**。还是以银行取钱为例，事务A开启事务-->查出银行卡余额为1000元，此时切换到事务B事务B开启事务-->事务B取走100元-->提交，数据库里面余额变为900元，此时切换回事务A，事务A再查一次查出账户余额为900元，这样对事务A而言，在同一个事务内两次读取账户余额数据不一致，这就是不可重复读。
+
+3.虚读（幻读）
+
+所谓幻读，就是指**在一个事务里面的操作中发现了未被操作的数据**。比如学生信息，事务A开启事务-->修改所有学生当天签到状况为false，此时切换到事务B，事务B开启事务-->事务B插入了一条学生数据，此时切换回事务A，事务A提交的时候发现了一条自己没有修改过的数据，这就是幻读，就好像发生了幻觉一样。**幻读出现的前提是并发的事务中有事务发生了插入、删除操作。**
+
+地址：https://www.cnblogs.com/xrq730/p/5087378.html 
+
+事务必须服从ACID原则：原子性（atomicity）,一致性（consistency），隔离性(isolation)，持久性(durability)
+
+* 原子性：
+
+即不可分割，事务要么全部被执行，要么全部不执行。如果事务的所有子事务全部提交成功，则所有的数据库操作被提交，数据库状态发生变化；如果有子事务失败，则其他子事务的数据库操作被回滚，即数据库回到事务执行前的状态，不会发生状态转换
+
+* 一致性
+
+  事务的执行使得数据库从一种正确状态转换成另外一种正确状态
+
+* 隔离性
+
+  在事务正确提交之前，不允许把事务对该数据的改变提供给任何其他事务，即在事务正确提交之前，它可能的结果不应该显示给其他事务
+
+* 持久性
+
+  事务正确提交之后，其结果将永远保存在数据库之中，即使在事务提交之后有了其他故障，事务的处理结果也会得到保存
+
 一共有四种事务的隔离级别，能设置5种
 
 1. ISOLATION_DEFAULT 数据库 默认的
@@ -536,6 +576,10 @@ PlatformTransactionManager是Spring的事务管理器接口，它提供了我们
 3. ISOLATION_READ_COMMITTED 解决脏读
 4. ISOLATION_REPEATABLE_READ 解决不可重复读
 5. ISOLATION_SERIALIZABLE 全能解决，但性能较低
+
+**事务的作用**
+
+事务管理对于企业级应用而言至关重要，**它保证了用户的每一次操作都是可靠的**，即便出现了异常的访问情况，也不至于破坏后台数据的完整性。
 
 ### 2. 事务的传播行为
 
@@ -760,7 +804,7 @@ public class listener implements ServletContextListener {
 }
 ```
 
-step2:在web.xml中配置监听器，这样就不用一次次的创建ApplicationContext了。我们创建了监听器但是没有Spring并不知道，所以要进行配置
+step2:在web.xml中配置监听器，这样就不用一次次的创建ApplicationContext了。我们创建了监听器但是Spring并不知道，所以要进行配置
 
 ```xml
 <listener>
@@ -897,7 +941,7 @@ Tomcat服务器接收客户端的请求，封装代表请求的req,代表响应�
                <param-name>contextConfigLocation</param-name>
                <param-value>classpath:spring_mvc.xml</param-value>
            </init-param>
-           <load-on-startup>1</load-on-startup>
+           <load-on-startup>1</load-on-startup>加载的优先级，数字越小优先级越高。
        </servlet>
        <servlet-mapping>
            <servlet-name>DispathcerServlet</servlet-name>
@@ -1233,14 +1277,234 @@ public user save9() throws Exception{
 
 客户端请求参数的格式是：name=value&name=value...
 
-服务器端要活得请求的参数，有时还需要进行数据的封装，springMVC可以接收如下类型的参数：
+服务器端要获得请求的参数，有时还需要进行数据的封装，springMVC可以接收如下类型的参数：
 
 1. 基本类型参数
-2. POJO类型参数
+2. POJO类型参数（简单Javabean）
 3. 数组类型参数
 4. 集合类型参数
 
 ### 6.SpringMVC获得基本类型参数
 
-Controller中的业务方法的 
+Controller中的业务方法的参数名称要与请求参数的name一致，参数值会自动映射匹配
+
+@ResponseBody不进行页面跳转
+
+ 在controller中示例
+
+```java
+@RequestMapping("quick6")
+@ResponseBody
+public void quick6(String name,int age) {
+    System.out.println(name);
+    System.out.println(age);
+}
+```
+
+### 7.获得POJO类型
+
+Controller中的业务方法的POJO参数的属性名与请求参数的name一致，参数值会自动映射匹配
+
+在controller中的使用示例
+
+```Java
+@RequestMapping("quick7")
+@ResponseBody
+public void quick7(user us) {
+    System.out.println(us);
+}
+```
+
+封装POJO类型请求地址中name必须与user实体类中的属性一致才可以进行封装
+
+### 8.SpringMVC获得数组类型参数
+
+Controller中的业务方法数组名称与请求参数的name一致，参数会自动映射匹配
+
+示例
+
+```java
+@RequestMapping("quick8")
+@ResponseBody
+public void quick8(String[] strs) {
+    System.out.println(Arrays.asList(strs));
+}
+```
+
+请求地址
+
+http://localhost:8080/Review6_war_exploded/quick8?strs=a&strs=b
+
+注意请求地址中的名称是一致的，同时可以使用多个数组，只要数组名称与请求中的参数名称一致就行
+
+### 9.获得集合类型参数
+
+获得结合参数时，要将集合参数包装到一个POJO中才可以
+
+首先我们要将集合封装到一个实体当中，将这个实体当作参数，利用form表单进行提交
+
+user实体
+
+```Java
+package com.baoliang.user;
+
+public class user {
+    private String name;
+    private String add;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getAdd() {
+        return add;
+    }
+
+    public void setAdd(String add) {
+        this.add = add;
+    }
+
+    @Override
+    public String toString() {
+        return "user{" +
+                "name='" + name + '\'' +
+                ", add='" + add + '\'' +
+                '}';
+    }
+}
+```
+
+封装userlist的实体类VO
+
+```java
+package com.baoliang.user;
+
+import java.util.List;
+
+public class VO {
+    private List<user> userlist;
+
+    public void setUserlist(List<user> userlist) {
+        this.userlist = userlist;
+    }
+
+    @Override
+    public String toString() {
+        return "VO{" +
+                "userlist=" + userlist +
+                '}';
+    }
+
+    public List<user> getUserlist() {
+        return userlist;
+    }
+}
+```
+
+使用post提交的表单
+
+```html
+<%--
+  Created by IntelliJ IDEA.
+  User: Iamzh
+  Date: 2021/2/25
+  Time: 10:22
+  To change this template use File | Settings | File Templates.
+--%>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<html>
+<head>
+    <title>Title</title>
+</head>
+<body>
+<form action="${pageContext.request.contextPath}/quick9" method="post">
+    <input type="text" name="userlist[0].name"><br>
+    <input type="text" name="userlist[0].add"><br>
+    <input type="text" name="userlist[1].name"><br>
+    <input type="text" name="userlist[1].add"><br>
+    <input type="submit" value="提交">
+</form>
+</body>
+</html>
+```
+
+controller中的操作
+
+```java
+@RequestMapping("quick9")
+@ResponseBody
+public void quick9(VO vo) {
+    System.out.println(vo);
+}
+```
+
+ 
+
+### 10. 另外一种获取集合类型参数
+
+使用ajax转化为json，
+
+jsp页面
+
+```html
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<html>
+<head>
+    <title>Title</title>
+    <script src="${pageContext.request.contextPath}/js/jquery-3.5.1.js"></script>
+    <script>
+        var userlist =new Array();
+        userlist.push({name:"zhansan",add:"山东"});
+        userlist.push({name:"lisi",add:"山东"});
+        $.ajax(
+            {
+                type:"POST",
+                url:"${pageContext.request.contextPath}/quick10",
+                data:JSON.stringify(userlist),
+                contentType:"application/json;charset=utf-8"
+            }
+        );
+    </script>
+</head>
+<body>
+
+</body>
+</html>
+```
+
+controller
+
+```java
+@RequestMapping("quick10")
+@ResponseBody
+public void quick10(@RequestBody List<user> userlist) {
+    System.out.println(userlist);
+}
+```
+
+其中的ResponseBody代表我们的请求体，客户端发送的是json格式数据，而contentType指定的是json
+
+注意一点要在xml文件中写上资源，因为权限问题，如果不写就会封装失败
+
+```xml
+<mvc:resources mapping="/js/**" location="/js/"/>
+```
+
+解释一下上面
+
+**静态资源访问权限的开启**
+
+上面这个其中mapping代表我们的匹配地址，而后面的location是要找的资源地址。
+
+为什么不写这个就会访问不到juery文件呢，因为我们在上面的Html页面中写有Jquery地址，但是当我们进行访问页面后，这个地址就会请求服务器，我们的Springmvc中并没有这个地址的匹配，那么就会什么都不干，写了上面这个当找不到匹配的时候，就会匹配这个地址资源
+
+还有一种方式开放这个权限，不是让springmvc去匹配这个资源而是让tomcat进行匹配，当找不到的时候使用tomcat进行匹配。在xml中进行如下配置
+
+```xml
+<mvc:default-servlet-handler/>
+```
 
