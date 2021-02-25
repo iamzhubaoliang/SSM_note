@@ -1508,3 +1508,228 @@ public void quick10(@RequestBody List<user> userlist) {
 <mvc:default-servlet-handler/>
 ```
 
+### 11.解决请求参数的乱码问题
+
+在web.xml中配置filter
+
+```xml
+<filter>
+    <filter-name>CharacterEncodingFilter</filter-name>
+    <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+    <init-param>
+        <param-name>encoding</param-name>
+        <param-value>UTF-8</param-value>
+    </init-param>
+</filter>
+<filter-mapping>
+    <filter-name>CharacterEncodingFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+</filter-mapping>
+```
+
+### 12. 参数绑定注解
+
+当请求的参数名称与Controller的业务方法参数名称不一致时，就需要通过@RequestParam注解显式绑定
+
+就是我们使用的请求地址中参数名称与我们方法参数中名称不一致的时候如何获取参数。
+
+就是在请求地址的参数名称和方法中的名称建立一个映射（**自己实验了一下，建立映射后原来的参数名称不能用了**）
+
+ @requestParam注解的参数
+
+* value :与请求参数名称
+* required:此时指定的请求参数是否必须包括，默认是true,提交时如果没有此参数则报错
+* defaultValue:当没有指定请求参数时，则使用指定的默认值赋值
+
+### 13.获得Restful风格参数
+
+Restful是一种架构风格，设计风格，而不是标准，也就是不用必须这么干，只是提供了一组设计原则和约束条件。主要用于客户端和服务器交互类的软件，基于这个风格设计的软件可以更简洁，更有层次，更易于实现缓存机制等。 
+
+Restful风格的请求是使用“url+请求方式”表示一次请求目的的，HTTP协议里面四个表示操作方式的动词如下：
+
+* GET：用于获取资源
+
+* POST：用于新建资源
+
+* PUT：用于更新资源
+
+* DELETE:用于删除资源
+
+  从上面我们知道**请求方式有四种**，只不过我们平常只使用前面两种
+
+  下面列举的是请求地址的示例
+
+![image-20210225152755607](pic/image-20210225152755607.png)
+
+**可以在RequestMapping中method中指定请求方式**
+
+上述url地址/user/1中的1就是要获得的请求参数，在springMVC中可以使用占位符进行参数绑定。地址/user/1可以写成/user/{id},占位符对应的就是1的值。在业务方法中我们可以使用@PathVariable注解进行占位符的匹配获取工作
+
+![image-20210225153302190](pic/image-20210225153302190.png) 
+
+这样就可以不用键值对的方式直接解析地址内部的参数
+
+示例地址 http://localhost:8080/Review6_war_exploded/quick12/zhansan
+
+### 14.自定义类型转换器
+
+ SpringMVC默认已经提供了一些常用的类型转换器，例如客户端提交的字符串转换成int型进行参数设置。
+
+但不是所有的数据类型都提供了转换器，没有提供的就需要自定义转换器，例如：日期类型就需要自定义转换器
+
+自定义类型转换器的开发步骤：
+
+1. 定义转换器类实现Converter接口
+
+2. 在配置文件中声明转换器
+
+3. 在<annotation-driven>中引用转换器
+
+   
+
+1. 在类中自定义转换器
+
+   ```java
+   import org.springframework.core.convert.converter.Converter;
+   
+   import java.text.ParseException;
+   import java.text.SimpleDateFormat;
+   import java.util.Date;
+   
+   public class convertor implements Converter<String,Date> {
+       @Override
+       public Date convert(String source) {
+           SimpleDateFormat format=new SimpleDateFormat("yyyy-MM-dd");
+           Date date=null;
+           try {
+             date=format.parse(source);
+           } catch (ParseException e) {
+               e.printStackTrace();
+           }
+           return date;
+       }
+   }
+   ```
+
+2. 在配置文件声明转换器
+
+```xml
+创建转换器工厂
+<bean id="ConversionServiceFactoryBean" class="org.springframework.context.support.ConversionServiceFactoryBean">
+    <property name="converters">
+        <list>
+            <bean class="com.baoliang.service.convertor"/>
+        </list>
+    </property>
+</bean>
+在驱动中引用
+<mvc:annotation-driven conversion-service="ConversionServiceFactoryBean"></mvc:annotation-driven>
+```
+
+3. 在驱动中引用如上
+
+### 15.获得请求头
+
+@RequestHeader
+
+使用@RequestHeader可得到请求头的信息，相当于web阶段学习的request.getHeader(name) @RequestHeader注解的属性如下：
+
+* value:请求头的名称
+
+* required:是否必须携带此请求头
+
+  示例
+
+  ```java
+  @RequestMapping("/quick14")
+  @ResponseBody
+  public void quick14(@RequestHeader(value = "User-Agent",required = false) String param){
+      System.out.println(param);
+  }
+  ```
+
+我们从哪里看请求头？User-Agent代表什么？它们是浏览器的信息，其实，请求头有很多参数我们只是取得了User-Agent一个而已
+
+![image-20210225162454728](pic/image-20210225162454728.png)
+
+在浏览器开发者工具中可以查看
+
+@CookieValue
+
+使用这个注解可以获得指定Cookie值，注解的属性如下
+
+* value:指定cookie的名称
+* required：是否必须携带此cookie
+
+其实@RequestHeader也能获取cookie,只不过将键值对一块获得了
+
+```Java
+@RequestMapping("/quick15")
+@ResponseBody
+public void quick15(@CookieValue(value = "JSESSIONID",required = false) String param){
+    System.out.println(param);
+}
+```
+
+其中JSESSIONID是cookie键值对中的键
+
+### 16. 文件上传
+
+文件上传客户端三要素
+
+1. 表单项type="file"
+
+2. 表单提交方式是post
+
+3. 表单的enctype属性是多部份表单形式，及enctype="multipart/form-data"
+
+   
+
+![image-20210225165556788](pic/image-20210225165556788.png)
+
+文件上传原理
+
+![image-20210225170352499](pic/image-20210225170352499.png)
+
+在表单中我们可以看到，文件中的内容
+
+单文件上传步骤
+
+1. 导入fileupload和io坐标
+
+   ![image-20210225170759201](pic/image-20210225170759201.png)
+
+2. 配置文件上传解析器
+
+    
+
+   ```xml
+   <bean id="multipartResolver"  class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+       <property name="defaultEncoding" value="UTF-8"/>
+       <property name="maxUploadSize" value="999999999999"/>
+   </bean>
+   ```
+
+   其中id必须固定，否则传不上去
+
+3. 编写文件上传代码
+
+   ```html
+   <form action="${pageContext.request.contextPath}/quick16" method="post" enctype="multipart/form-data">注意enctype的形式
+       <input type="text" name="username"><br>
+       <input type="file" name="uploadfile"><br>
+       <input type="submit" value="提交">
+   </form>
+   ```
+
+   
+
+```java
+@RequestMapping("/quick16")
+@ResponseBody
+//下面这俩参数的名称必须对应jsp的form表单中的名称
+public void quick16(String username, MultipartFile uploadfile){
+    System.out.println(username);
+    System.out.println(uploadfile);
+}
+```
