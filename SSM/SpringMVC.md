@@ -1628,6 +1628,16 @@ Restful风格的请求是使用“url+请求方式”表示一次请求目的的
 
 3. 在驱动中引用如上
 
+**补充一下** **/ 和/* 的区别**：
+
+1、< url-pattern>/</url-pattern>  会匹配到/register这样的路径型url，不会匹配到模式为*.jsp这样的后缀型url，但是会拦截像.html .css的静态资源。
+
+2、< url-pattern>/*</url-pattern> 会匹配所有url：路径型的和后缀型的url(包括/login,*.jsp,*.js和*.html等)
+
+3、/* 可以匹配到所有的请求，它一般用在拦截器上。
+
+4、很多人理解’/’不会拦截带扩展名的静态资源，这种理解是错误的！它其实也能拦截“.js”，“.css”，".png"等静态资源的访问。
+
 ### 15.获得请求头
 
 @RequestHeader
@@ -1710,7 +1720,7 @@ public void quick15(@CookieValue(value = "JSESSIONID",required = false) String p
    </bean>
    ```
 
-   其中id必须固定，否则传不上去
+   其中id multipartResolver必须固定，否则传不上去
 
 3. 编写文件上传代码
 
@@ -1733,3 +1743,343 @@ public void quick16(String username, MultipartFile uploadfile){
     System.out.println(uploadfile);
 }
 ```
+
+文件上传后存储文件
+
+```java
+@RequestMapping("q5")
+@ResponseBody
+public void q5(String name,MultipartFile uploadfile) throws IOException {
+    System.out.println(name);
+    String filename=uploadfile.getOriginalFilename();
+    uploadfile.transferTo(new File("E:\\upload\\"+filename));
+}
+```
+
+多文件上传
+
+第一种，使用多个不同的参数
+
+jsp文件
+
+```html
+<form action="${pageContext.request.contextPath}/q5" method="post" enctype="multipart/form-data">
+    <input type="text" name="name"><br>
+    <input type="file" name="uploadfile"><br>
+    <input type="file" name="uploadfile1"><br>
+    <input type="submit" value="提交">
+</form>
+```
+
+controller
+
+```java
+@RequestMapping("q5")
+@ResponseBody
+public void q5(String name,MultipartFile uploadfile,MultipartFile uploadfile1) throws IOException {
+    System.out.println(name);
+    String filename=uploadfile.getOriginalFilename();
+    uploadfile.transferTo(new File("E:\\upload\\"+filename));
+    String filename1=uploadfile1.getOriginalFilename();
+    uploadfile.transferTo(new File("E:\\upload\\"+filename1));
+}
+```
+
+第二种使用数组
+
+```html
+<form action="${pageContext.request.contextPath}/q5" method="post" enctype="multipart/form-data">
+    <input type="text" name="name"><br>
+    <input type="file" name="uploadfile"><br>
+    <input type="file" name="uploadfile"><br>
+    <input type="submit" value="提交">
+</form>
+```
+
+**注意文件按钮的name是一样的**
+
+controller
+
+```java
+@RequestMapping("q5")
+@ResponseBody
+public void q5(String name,MultipartFile[] uploadfile) throws IOException {
+    System.out.println(name);
+    for (MultipartFile file:uploadfile) {
+        String filename=file.getOriginalFilename();
+        file.transferTo(new File("E:\\upload\\"+filename));
+    }
+
+}
+```
+
+# 9.SpringMVC的拦截器
+
+## 1. 拦截器的作用
+
+SpringMVC的拦截器类似于Servlet开发中的过滤器Filter,用于对处理器进行预处理和后处理
+
+将拦截器按一定的顺序联结成一条链，这条链称为拦截器链（Interceptor Chain）。在访问被拦截的方法获字段时，拦截器链中的拦截器就会按其之前定义的顺序被调用。拦截器也是AOP思想的具体体现。
+
+## 2.（重要）拦截器和过滤器的区别
+
+**重要！**
+
+| 区别     | 过滤器                                                       | 拦截器                                                       |
+| -------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| 使用范围 | 是servlet规范中的一部分，任何java Web工程够可以使用          | 是SpringMVC框架自己的，只有使用SpringMVC框架工程才有         |
+| 拦截范围 | 在url-pattern中配置了/*之后，可以对所要访问的资源进行拦截，即对所有的资源进行拦截 | 只会拦截访问控制器的的方法，如果访问的是jsp，html,css,image或者js是不会进行拦截的 |
+
+## 3.拦截器实现
+
+自定义拦截器步骤：
+
+1. 创建拦截器类实现HandlerInterceptor接口
+2. 配置拦截器
+3. 测试拦截器的拦截效果
+
+创建拦截器
+
+实现这三个接口方法
+
+```java
+public class Myinterceptor1 implements HandlerInterceptor {
+    @Override
+    //注意方法的参数
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        System.out.println("preHandle");
+        return true;//注意返回值false和true的区别
+    }
+    @Override
+    //ModelAndView modelAndView相比上面多了这个参数，这个参数可以修改返回的视图
+    public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+        System.out.println("postHandle");
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        System.out.println("afterCompletion");
+    }
+}
+```
+
+上面三个方法的执行时间点：
+
+preHandle在处理器方法执行之前执行
+
+postHandle在处理器方法执行之后，视图返回之前执行
+
+afterCompletion在上面程序执行之后执行
+
+其中preHandle执行方法返回false的时候，拦截器就会停止在方法preHandle方法执行完成之后，postHandle和afterCompletion都不会执行，这样就会去执行其他资源，避开目标资源.
+
+当返回true的时候就会继续调用下一个Interceptor的preHandle方法
+
+![image-20210226170613515](pic/image-20210226170613515.png)
+
+ 配置如下 
+
+```xml
+<mvc:interceptors>
+    <mvc:interceptor>
+        <mvc:mapping path="/**"/>
+        <bean class="com.baoliang.interceptor.Myinterceptor1"/>
+    </mvc:interceptor>
+</mvc:interceptors>
+```
+
+
+
+
+
+演示一下这三个方法用途
+
+```java
+public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    System.out.println("preHandle");
+    String param=request.getParameter("param");//获取url中param名称参数的值
+
+    if("yes".equals(param)){
+        return true;//如果parm为yes则往下执行
+    }else
+    {   request.getRequestDispatcher("/error.jsp").forward(request,response);//如果不是则拦住并且跳转到errror页面
+        return false;
+    }
+
+}
+@Override
+public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+    modelAndView.addObject("name","哈哈哈");//post方法是目标方法之后，视图返回之前，所以它可以修改视图，我们将视图的${name}占位符修改为哈哈哈
+    System.out.println("postHandle");
+}
+```
+
+## 4.多拦截器接口方法执行顺序
+
+多拦截器的接口方法执行顺序是与xml文件中配置顺序有关的
+
+顺序是这样的
+
+后面带1的是配置文件中配置的第一个拦截器，2为第二个
+
+preHandle1
+
+preHandle2
+
+目标方法
+
+postHandle2
+
+postHandle1
+
+afterCompletion2
+
+afterCompletion1
+
+## 5. 补充小结
+
+重定向，response.sendRedirect()
+
+获取服务器前缀路径：request.getContextPath()
+
+哪些资源排除拦截操作<mvc:exclude-mapping path=""/>
+
+jdbcTemplate.queryForObject当查询不到的时候会抛出一个异常
+
+# 10.SpringMVC异常处理机制
+
+如果在业务层代码中try catch捕获异常就会造成业务层代码与处理异常代码进行耦合。在Java中有一种抽取的思想，相同的异常往往有相同的处理方法。
+
+ 系统中异常包括两类：预期异常和运行时异常RuntimeException，前者通过捕获异常从而获取异常信息，后者主要通过规范代码开发，测试手段减少运行时异常的发生。
+
+系统Dao，service，Controller出现异常都通过throws Exception向上抛出，最后由SpringMVC前端控制器交由异常处理器进行异常处理
+
+![image-20210226194442367](pic/image-20210226194442367.png)
+
+## 1.异常处理两种方式
+
+1. 使用SpringMVC提供的简单异常处理器SimpleMappingExceptionResolver
+2. 实现Spring的异常处理接口HandlerExceptionResolver自定义自己的异常处理器
+
+
+
+**SimpleMappingExceptionResolver**
+
+SpringMVC已经定义好了该类型转换器，在使用时可以根据项目情况进行相应异常与视图的映射配置。这个异常是SpringMVC已经定义好的，只需要配置相应的页面关系即可
+
+xml中的配置
+
+```xml
+<bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+    <property name="defaultErrorView" value="error"/>
+    <property name="exceptionMappings">
+        <map>
+            <entry key="java.lang.ClassCastException" value="error"/>
+            <entry key="com.baoliang.exception.MyException" value="error"/>
+        </map>
+    </property>
+</bean>
+```
+
+其中的value值为jsp页面，因为配置了内部视图解析器的前后缀所以只写了error。error应该是不同的页面，这里为了简化的处理，我们使用了相同的页面，应该不同异常跳转到不同的页面。
+
+**自定义异常处理器**
+
+ 自定义异常要继承自HandlerExceptionResolver
+
+```Java
+public class Myresolver implements HandlerExceptionResolver {
+    @Override
+    public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+
+        ModelAndView modelAndView=new ModelAndView();
+        if(ex instanceof MyException){
+            modelAndView.addObject("info","自定义异常");
+
+        }else
+        {
+            modelAndView.addObject("info","类型转换异常");
+        }
+        modelAndView.setViewName("error");
+        return modelAndView;
+    }
+}
+```
+
+xml文件中进行配置
+
+```xml
+<bean class="com.baoliang.resolver.Myresolver"/>
+```
+
+## 2. 小结
+
+只要是springMVC写好的要用就要进行配置
+
+自定义异常处理步骤
+
+1. 创建处理器类实现HandlerExceptionResolver
+2. 配置异常处理器
+3. 编写异常页面
+4. 测试异常跳转 
+
+**先搞明白业务再分析表关系，写代码**
+
+# 11. SpringMVC练习
+
+1.多对多关系得有一个中间表，中间表维护的外键
+
+例子
+
+![image-20210227100848735](pic/image-20210227100848735.png)
+
+例如张三既是CEO又是COO
+
+
+
+使用Post提交会有乱码问题，所以必须配置filter来设置编码Character
+
+```xml
+<filter>
+    <filter-name>CharacterEncodingFilter</filter-name>
+    <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+    <init-param>
+        <param-name>encoding</param-name>
+        <param-value>UTF-8</param-value>
+    </init-param>
+</filter>
+<filter-mapping>
+    <filter-name>CharacterEncodingFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+</filter-mapping>
+```
+
+可返回主键的数据库查询
+
+```java
+PreparedStatementCreator creator=new PreparedStatementCreator() {
+    @Override
+    public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
+        //使用原始的jdbc完成一个PrepareStatemetn组件
+        PreparedStatement preparedStatement=con.prepareStatement("insert into sys_user values (?,?,?,?,?)",PreparedStatement.RETURN_GENERATED_KEYS);
+        preparedStatement.setObject(1,null);
+        preparedStatement.setString(2,user.getUsername());
+        preparedStatement.setString(3,user.getEmail());
+        preparedStatement.setString(4,user.getPassword());
+        preparedStatement.setString(5,user.getPhoneNum());
+        return preparedStatement;
+    }
+};
+
+GeneratedKeyHolder keyHolder =new GeneratedKeyHolder();
+jdbcTemplate.update(creator,keyHolder);
+//获得生成的主键
+long userId=keyHolder.getKey().longValue();
+
+//jdbcTemplate.update("insert into sys_user values (?,?,?,?,?)",null,user.getUsername(),user.getEmail(),user.getPassword(),user.getPhoneNum());
+return userId;
+```
+
+先删除外键关系表，再删掉主表的内容
+
+一般业务中同时进行保存，删除啥的都要进行事务的控制，保证数据的准确性
