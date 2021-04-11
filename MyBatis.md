@@ -1,3 +1,5 @@
+
+
 # 1.MyBatis
 
 ## 1.简介
@@ -94,6 +96,12 @@
 
 namespace 是命名空间，因为一个mapper中可以有许多的sql标签例如<select>等，可以通过 命名空间.sql标签id来调用，resultType是告诉mybatis最终查询结果要封装到哪里。
 
+当数据库中字段名称与实体属性名称不同怎么办？
+
+https://www.cnblogs.com/fps2tao/p/13901292.html
+
+
+
 **如果根据条件查询就得加一个ParameterType**
 
 2. 编写核心配置文件SqlMapConfig.xml
@@ -159,6 +167,66 @@ public class mybatis {
  
 
 sqlSession.selectList表示查询一个集合
+
+在Java中如何获取配置文件的路径：1.使用类加载器，它只能读取类路径的配置文件
+
+   2. 使用ServletContext对象的getRealPath()方法
+
+      Mybatis解析配置文件使用的是dom4j解析的
+
+![image-20210406095325602](pic/image-20210406095325602.png)
+
+
+
+ ![image-20210406095625784](pic/image-20210406095625784.png)
+
+'
+
+
+
+![image-20210406102118966](pic/image-20210406102118966.png)
+
+OGNL表达式
+
+![image-20210406102555295](pic/image-20210406102555295.png)
+
+普通的写法是user.getUsername()而ognl表达式user.username.
+
+上图中parmeterTyper中已经提供了前缀，所以直接在下面使用username 就行
+
+
+
+# 根据多个 对象的查询条件进行查询
+
+用一个对象包装其他对象。
+
+![image-20210406103243262](pic/image-20210406103243262.png)
+
+QueryVO中包装了好几个对象，可以使用ognl表达式进行取出来
+
+# 解决实体属性与数据库名称不匹配问题
+
+1. sql语句中起个别名
+
+2. 采用配置方法，配置resultMap映射
+
+   ![image-20210406104715014](pic/image-20210406104715014.png)
+
+properties中可以使用URL
+
+
+
+![image-20210406113746585](pic/image-20210406113746585.png)
+
+配置完typeAliases后再使用，大小写都行
+
+可以使用package
+
+![image-20210406114230589](pic/image-20210406114230589.png)
+
+<mappers>也可以用
+
+![image-20210406114442189](pic/image-20210406114442189.png)
 
 ## 4.映射文件的概述
 
@@ -382,13 +450,13 @@ public static void main(String[] args) throws IOException {
 
 采用Mybatis的代理开发方式实现DAO层的开发，这种方式是我们后面进入企业的主流。
 
-Mapper接口开发方法只需要程序员编写Mapper接口（相当于Dao接口），由MyBatis框架根据接口定义创建接口的动态代理对象，代理对象的方法同上边Dao接口实现类方法。
+**Mapper接口开发方法只需要程序员编写Mapper接口（相当于Dao接口），由MyBatis框架根据接口定义创建接口的动态代理对象，代理对象的方法同上边Dao接口实现类方法。**
 
 Mapper接口开发需要遵循以下规范：
 
 1. Mapper.xml文件中的namespace与mapper接口的全限定名相同
 2. Mapper接口方法名和Mapper.xml中定义的每个statement的id相同
-3. Mapper接口方法的输入参数类型和mapper.xml中定义的每个sql的parameterType的类型相同
+3. Mapper接口方法的输入参数类型和mapper.*-xml中定义的每个sql的parameterType的类型相同
 4. Mapper接口方法的输出类型和mapper.xml中定义的每个sql的resultType相同
 
 对应的图例

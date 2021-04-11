@@ -1,5 +1,7 @@
 # 1.Spring 配置文件
 
+![image-20210303103919491](pic/image-20210303103919491.png)
+
 ## 1. 依赖注入的方法有
 
 * set注入
@@ -294,7 +296,7 @@ public static void main(String[] args){
            @Override
            public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
                advice.before();
-               Object invoke=method.invoke(target,args);
+               Object invoke=methodProxy.invokeSuper(target,args);
                advice.after();
                return invoke;
            }
@@ -2083,3 +2085,4 @@ return userId;
 先删除外键关系表，再删掉主表的内容
 
 一般业务中同时进行保存，删除啥的都要进行事务的控制，保证数据的准确性
+

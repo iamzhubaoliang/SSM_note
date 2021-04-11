@@ -133,3 +133,113 @@ xiaozhong:
 注意文件名称都是以application为开头的
 
 还有就是，在这里读取配置文件没有任何的注解，因为写文件名称为application.yml的时候，springboot就会认为是配置文件。
+
+## 6.自动启动原理
+
+![image-20210303095842739](pic/image-20210303095842739.png)
+
+在spring boot自动整合的前提下，如何修改组件的默认值
+
+![image-20210303095409406](pic/image-20210303095409406.png)
+
+
+
+ 配置文件中能配置的东西，都存在一个固有的规律
+
+xxxxAutoConofiguration:默认值 xxxProperties 和配置文件绑定，我们就可以使用自定义的配置了。
+
+![image-20210303145041460](pic/image-20210303145041460.png)
+
+查看哪些自动类生效了
+
+在yml中配置
+
+debug: true
+
+## 7.lombok应用
+
+![image-20210303100529940](pic/image-20210303100529940.png)![image-20210303100855754](pic/image-20210303100855754.png)![image-20210303101755451](pic/image-20210303101755451.png)
+
+## 8.Spring Boot整合-SpringMVC端口和静态资源
+
+![image-20210303102705771](pic/image-20210303102705771.png)
+
+
+
+@AllArgsConstructor为有参构造
+
+@NoArgsConstructor为无参数构造
+
+
+
+## 9.SpringBoot整合SpringMVC拦截器
+
+![image-20210303102745305](pic/image-20210303102745305.png)
+
+![image-20210303103604822](pic/image-20210303103604822.png)
+
+
+
+## 10.SpringBoot web开发
+
+![image-20210303150054155](pic/image-20210303150054155.png)
+
+什么是webjars?
+
+webjars可以以maven方式引入juery
+
+## 11.首页如何定制
+
+放在静态资源目录中命名为index.html就成为了首页
+
+![image-20210303152148343](pic/image-20210303152148343.png)
+
+在templates目录下所有页面，只能通过controller来跳转
+
+thymeleaf模板引擎
+
+![image-20210303154521983](pic/image-20210303154521983.png)
+
+在html中导入头文件
+
+![image-20210303154809224](pic/image-20210303154809224.png)
+
+![image-20210303154735976](pic/image-20210303154735976.png)
+
+正常在html标签中
+
+```html
+<h1 text="">加上th可以取任何值<h1 th:text="${msg}"></h1>
+```
+
+所有的html元素都可以被thymeleaf替换接管 th:元素名
+
+text会转译html，而utext不会转译
+
+**基本语法**
+
+![image-20210303160205141](pic/image-20210303160205141.png)
+
+## 12. 扩展SpringMVC
+
+创建一个类并且加入@Configuration注解不要添加@EnableWebMVC注解，实现WebMvcC onfigurer
+
+实现了ViewResolver接口的类就可以看作视图解析器
+
+如果想自定义一些定制化的功能只需要写这个组件，然后将它交给SPringboot,springboot就会帮我们自动装配
+
+@EnableWebMvc：导入了一个类：DelegatingWebMvcConfiguration：从容器中获取所有的webmvcconfig
+
+加上@EnableWebMvc SpringMvc的配置全部失效
+
+## 13.国际化
+
+spring.message.basename=文件前缀
+
+一个前缀有很多的后缀文件
+
+比如login_zh_CN.properties,login_en_US.properties
+
+## 14. 整合Redis
+
+![image-20210303175439575](pic/image-20210303175439575.png)
